@@ -63,8 +63,8 @@ fn groth16_proof_wrong_input() {
 #[test]
 fn groth16_proof_circom2() -> Result<()> {
     let cfg = CircomConfig::<Bn254>::new(
-        "./test-vectors/circom2_multiplier2.wasm",
-        "./test-vectors/circom2_multiplier2.r1cs",
+        "./test-vectors/multiplier2.wasm",
+        "./test-vectors/multiplier2.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
     builder.push_input("a", 3);

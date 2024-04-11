@@ -1,31 +1,12 @@
 use color_eyre::Result;
-use wasmer::{Function, Instance, Value};
-
-#[derive(Clone, Debug)]
-pub struct Wasm(Instance);
+use wasm3::Module;
+pub struct Wasm<'a>(pub Module<'a>);
 
 pub trait CircomBase {
     fn init(&self, sanity_check: bool) -> Result<()>;
-    fn func(&self, name: &str) -> &Function;
-    fn get_ptr_witness_buffer(&self) -> Result<u32>;
-    fn get_ptr_witness(&self, w: u32) -> Result<u32>;
-    fn get_n_vars(&self) -> Result<u32>;
-    fn get_signal_offset32(
-        &self,
-        p_sig_offset: u32,
-        component: u32,
-        hash_msb: u32,
-        hash_lsb: u32,
-    ) -> Result<()>;
-    fn set_signal(&self, c_idx: u32, component: u32, signal: u32, p_val: u32) -> Result<()>;
     fn get_u32(&self, name: &str) -> Result<u32>;
     // Only exists natively in Circom2, hardcoded for Circom
     fn get_version(&self) -> Result<u32>;
-}
-
-pub trait Circom {
-    fn get_fr_len(&self) -> Result<u32>;
-    fn get_ptr_raw_prime(&self) -> Result<u32>;
 }
 
 pub trait Circom2 {
@@ -38,48 +19,53 @@ pub trait Circom2 {
     fn get_witness_size(&self) -> Result<u32>;
 }
 
-impl Circom for Wasm {
-    fn get_fr_len(&self) -> Result<u32> {
-        self.get_u32("getFrLen")
-    }
-
-    fn get_ptr_raw_prime(&self) -> Result<u32> {
-        self.get_u32("getPRawPrime")
-    }
-}
-
-impl Circom2 for Wasm {
+impl<'a> Circom2 for Wasm<'a> {
     fn get_field_num_len32(&self) -> Result<u32> {
         self.get_u32("getFieldNumLen32")
     }
 
     fn get_raw_prime(&self) -> Result<()> {
-        let func = self.func("getRawPrime");
-        func.call(&[])?;
+        let func = self
+            .0
+            .find_function::<(), ()>("getRawPrime")
+            .expect("Unable to find function");
+        func.call().unwrap();
         Ok(())
     }
 
     fn read_shared_rw_memory(&self, i: u32) -> Result<u32> {
-        let func = self.func("readSharedRWMemory");
-        let result = func.call(&[i.into()])?;
-        Ok(result[0].unwrap_i32() as u32)
+        let func = self
+            .0
+            .find_function::<i32, i32>("readSharedRWMemory")
+            .expect("Unable to find function");
+        let result = func.call(i as i32).unwrap();
+        Ok(result as u32)
     }
 
     fn write_shared_rw_memory(&self, i: u32, v: u32) -> Result<()> {
-        let func = self.func("writeSharedRWMemory");
-        func.call(&[i.into(), v.into()])?;
+        let func = self
+            .0
+            .find_function::<(i32, i32), ()>("writeSharedRWMemory")
+            .expect("Unable to find function");
+        func.call(i as i32, v as i32).unwrap();
         Ok(())
     }
 
     fn set_input_signal(&self, hmsb: u32, hlsb: u32, pos: u32) -> Result<()> {
-        let func = self.func("setInputSignal");
-        func.call(&[hmsb.into(), hlsb.into(), pos.into()])?;
+        let func = self
+            .0
+            .find_function::<(i32, i32, i32), ()>("setInputSignal")
+            .expect("Unable to find function");
+        let _ = func.call(hmsb as i32, hlsb as i32, pos as i32);
         Ok(())
     }
 
     fn get_witness(&self, i: u32) -> Result<()> {
-        let func = self.func("getWitness");
-        func.call(&[i.into()])?;
+        let func = self
+            .0
+            .find_function::<i32, ()>("getWitness")
+            .expect("Unable to find function");
+        func.call(i as i32).unwrap();
         Ok(())
     }
 
@@ -88,77 +74,35 @@ impl Circom2 for Wasm {
     }
 }
 
-impl CircomBase for Wasm {
+impl<'a> CircomBase for Wasm<'a> {
     fn init(&self, sanity_check: bool) -> Result<()> {
-        let func = self.func("init");
-        func.call(&[Value::I32(sanity_check as i32)])?;
+        let func = self
+            .0
+            .find_function::<i32, ()>("init")
+            .expect("Unable to find function");
+        func.call(sanity_check as i32).unwrap();
         Ok(())
     }
 
-    fn get_ptr_witness_buffer(&self) -> Result<u32> {
-        self.get_u32("getWitnessBuffer")
-    }
-
-    fn get_ptr_witness(&self, w: u32) -> Result<u32> {
-        let func = self.func("getPWitness");
-        let res = func.call(&[w.into()])?;
-
-        Ok(res[0].unwrap_i32() as u32)
-    }
-
-    fn get_n_vars(&self) -> Result<u32> {
-        self.get_u32("getNVars")
-    }
-
-    fn get_signal_offset32(
-        &self,
-        p_sig_offset: u32,
-        component: u32,
-        hash_msb: u32,
-        hash_lsb: u32,
-    ) -> Result<()> {
-        let func = self.func("getSignalOffset32");
-        func.call(&[
-            p_sig_offset.into(),
-            component.into(),
-            hash_msb.into(),
-            hash_lsb.into(),
-        ])?;
-
-        Ok(())
-    }
-
-    fn set_signal(&self, c_idx: u32, component: u32, signal: u32, p_val: u32) -> Result<()> {
-        let func = self.func("setSignal");
-        func.call(&[c_idx.into(), component.into(), signal.into(), p_val.into()])?;
-
-        Ok(())
-    }
-
-    // Default to version 1 if it isn't explicitly defined
     fn get_version(&self) -> Result<u32> {
-        match self.0.exports.get_function("getVersion") {
-            Ok(func) => Ok(func.call(&[])?[0].unwrap_i32() as u32),
+        match self.0.find_function::<(), i32>("getVersion") {
+            Ok(func) => Ok(func.call().unwrap() as u32),
             Err(_) => Ok(1),
         }
     }
 
     fn get_u32(&self, name: &str) -> Result<u32> {
-        let func = self.func(name);
-        let result = func.call(&[])?;
-        Ok(result[0].unwrap_i32() as u32)
-    }
-
-    fn func(&self, name: &str) -> &Function {
-        self.0
-            .exports
-            .get_function(name)
-            .unwrap_or_else(|_| panic!("function {} not found", name))
+        let func = self
+            .0
+            .find_function::<(), i32>(name)
+            .expect("Unable to find function");
+        let result = func.call().unwrap();
+        Ok(result as u32)
     }
 }
 
-impl Wasm {
-    pub fn new(instance: Instance) -> Self {
+impl<'a> Wasm<'a> {
+    pub fn new(instance: Module<'a>) -> Wasm<'a> {
         Self(instance)
     }
 }

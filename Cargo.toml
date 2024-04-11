@@ -10,22 +10,38 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # WASM operations
-wasmer = { version = "=2.3.0", default-features = false }
 fnv = { version = "=1.0.7", default-features = false }
 num = { version = "=0.4.0" }
 num-traits = { version = "=0.2.15", default-features = false }
-num-bigint = { version = "=0.4.3", default-features = false, features = ["rand"] }
+num-bigint = { version = "=0.4.3", default-features = false, features = [
+    "rand",
+] }
 
 # ZKP Generation
 ark-crypto-primitives = { version = "=0.4.0" }
-ark-ec = { version = "=0.4.1", default-features = false, features = ["parallel"] }
-ark-ff = { version = "=0.4.1", default-features = false, features = ["parallel", "asm"] }
-ark-std = { version = "=0.4.0", default-features = false, features = ["parallel"] }
+ark-ec = { version = "=0.4.1", default-features = false, features = [
+    "parallel",
+] }
+ark-ff = { version = "=0.4.1", default-features = false, features = [
+    "parallel",
+    "asm",
+] }
+ark-std = { version = "=0.4.0", default-features = false, features = [
+    "parallel",
+] }
 ark-bn254 = { version = "=0.4.0" }
-ark-groth16 = { version = "=0.4.0", default-features = false, features = ["parallel"] }
-ark-poly = { version = "=0.4.1", default-features = false, features = ["parallel"] }
+ark-groth16 = { version = "=0.4.0", default-features = false, features = [
+    "parallel",
+] }
+ark-poly = { version = "=0.4.1", default-features = false, features = [
+    "parallel",
+] }
 ark-relations = { version = "=0.4.0", default-features = false }
 ark-serialize = { version = "=0.4.1", default-features = false }
+wasm3 = { git = "https://github.com/wasm3/wasm3-rs.git", default-features = false }
+wasm3-sys = { git = "https://github.com/wasm3/wasm3-rs.git", default-features = false, features = [
+    "build-bindgen",
+] }
 
 # decoding of data
 hex = "=0.4.3"
@@ -52,7 +68,6 @@ name = "groth16"
 harness = false
 
 [features]
-default = ["wasmer/default", "ethereum"]
-wasm = ["wasmer/js-default"]
+default = ["ethereum"]
 bench-complex-all = []
 ethereum = ["ethers-core"]
