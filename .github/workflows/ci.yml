@@ -37,7 +37,7 @@ jobs:
       - name: cargo test circom 2 feature flag
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --features circom-2
+            cargo test
 
   lint:
     runs-on: ubuntu-latest

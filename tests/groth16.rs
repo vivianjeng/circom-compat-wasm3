@@ -61,7 +61,6 @@ fn groth16_proof_wrong_input() {
 }
 
 #[test]
-#[cfg(feature = "circom-2")]
 fn groth16_proof_circom2() -> Result<()> {
     let cfg = CircomConfig::<Bn254>::new(
         "./test-vectors/circom2_multiplier2.wasm",
@@ -93,7 +92,6 @@ fn groth16_proof_circom2() -> Result<()> {
 }
 
 #[test]
-#[cfg(feature = "circom-2")]
 fn witness_generation_circom2() -> Result<()> {
     let cfg = CircomConfig::<Bn254>::new(
         "./test-vectors/circom2_multiplier2.wasm",

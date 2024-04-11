@@ -48,7 +48,6 @@ impl Circom for Wasm {
     }
 }
 
-#[cfg(feature = "circom-2")]
 impl Circom2 for Wasm {
     fn get_field_num_len32(&self) -> Result<u32> {
         self.get_u32("getFieldNumLen32")
