@@ -56,7 +56,7 @@ impl WitnessCalculator {
     pub fn from_bytes(data: &Vec<u8>) -> Result<Self> {
         let env = Environment::new().expect("Unable to create environment");
         let rt = env
-            .create_runtime(1024 * 60)
+            .create_runtime(1024 * 1024 * 1024)
             .expect("Unable to create runtime");
         let module = Module::parse(&env, &data[..]).expect("Unable to parse module");
 
